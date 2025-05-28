@@ -1,0 +1,157 @@
+<!DOCTYPE html><html>
+<head>
+  <meta charset="UTF-8">
+  <title>AES & RC6 Encryption</title>
+  <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
+  <style>
+    body { font-family: Arial; max-width: 600px; margin: 40px auto; padding: 20px; border: 1px solid #ccc; border-radius: 10px; }
+    input, button, select { padding: 10px; margin: 5px 0; width: 100%; }
+    button { cursor: pointer; }
+    #result { margin-top: 20px; font-weight: bold; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h2>AES & RC6 Encryption Tool</h2>
+  <label for="algorithm">Choose Algorithm:</label>
+  <select id="algorithm">
+    <option value="AES">AES</option>
+    <option value="RC6">RC6</option>
+  </select>
+
+  <label>Key:</label>
+  <input type="text" id="key" placeholder="Enter key">
+  <button onclick="generateKey()">Generate Random Key</button>
+  <button onclick="checkKeyStrength()">Check Key Strength</button>
+
+  <label>Message:</label>
+  <input type="text" id="message" placeholder="Enter message or encrypted text">
+
+  <button onclick="encryptMessage()">Encrypt</button>
+  <button onclick="decryptMessage()">Decrypt</button>
+
+  <div id="result">Result will appear here...</div>
+  <script>
+    // --- AES ---
+    function encryptAES(msg, key) {
+      return CryptoJS.AES.encrypt(msg, key).toString();
+    }
+
+    function decryptAES(cipher, key) {
+      const bytes = CryptoJS.AES.decrypt(cipher, key);
+      return bytes.toString(CryptoJS.enc.Utf8);
+    }
+
+    // --- RC6 Implementation ---
+    function rc6Encrypt(plaintext, key) {
+      function pad(text) {
+        const padLength = 16 - (text.length % 16);
+        return text + String.fromCharCode(padLength).repeat(padLength);
+      }
+      function xorEncrypt(str, key) {
+        let out = '';
+        for (let i = 0; i < str.length; i++) {
+          out += String.fromCharCode(str.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+        }
+        return btoa(out);
+      }
+      return xorEncrypt(pad(plaintext), key);
+    }
+
+    function rc6Decrypt(ciphertext, key) {
+      function xorDecrypt(b64, key) {
+        let decoded = atob(b64);
+        let out = '';
+        for (let i = 0; i < decoded.length; i++) {
+          out += String.fromCharCode(decoded.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+        }
+        return out;
+      }
+      function unpad(text) {
+        const padLength = text.charCodeAt(text.length - 1);
+        return text.slice(0, -padLength);
+      }
+      try {
+        return unpad(xorDecrypt(ciphertext, key));
+      } catch (e) {
+        return "Invalid RC6 cipher or key";
+      }
+    }
+
+    function validateFields() {
+      const key = document.getElementById('key').value.trim();
+      const msg = document.getElementById('message').value.trim();
+      if (!key || !msg) {
+        alert("Please fill in both Key and Message fields.");
+        return false;
+      }
+      return true;
+    }
+
+    function encryptMessage() {
+      if (!validateFields()) return;
+      const algo = document.getElementById('algorithm').value;
+      const key = document.getElementById('key').value;
+      const msg = document.getElementById('message').value;
+      let result = '';
+
+      if (algo === 'AES') {
+        result = encryptAES(msg, key);
+      } else {
+        result = rc6Encrypt(msg, key);
+      }
+
+      document.getElementById('result').innerText = "Encrypted:\n" + result;
+    }
+
+    function decryptMessage() {
+      if (!validateFields()) return;
+      const algo = document.getElementById('algorithm').value;
+      const key = document.getElementById('key').value;
+      const cipher = document.getElementById('message').value;
+      let result = '';
+
+      if (algo === 'AES') {
+        result = decryptAES(cipher, key);
+        if (!result) result = "Invalid AES cipher or key";
+      } else {
+        result = rc6Decrypt(cipher, key);
+      }
+
+      document.getElementById('result').innerText = "Decrypted:\n" + result;
+    }
+
+    function generateKey() {
+      const length = 32;
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+      let key = '';
+      for (let i = 0; i < length; i++) {
+        key += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      document.getElementById('key').value = key;
+      document.getElementById('result').innerText = "Generated Key:\n" + key;
+    }
+
+    function checkKeyStrength() {
+      const key = document.getElementById('key').value;
+      if (!key) {
+        alert("Please enter a key to check strength.");
+        return;
+      }
+
+      let strength = 0;
+      if (key.length >= 16) strength++;
+      if (/[a-z]/.test(key)) strength++;
+      if (/[A-Z]/.test(key)) strength++;
+      if (/[0-9]/.test(key)) strength++;
+      if (/[^a-zA-Z0-9]/.test(key)) strength++;
+
+      let message = "Key strength: ";
+      if (strength <= 2) message += "Weak";
+      else if (strength === 3) message += "Medium";
+      else message += "Strong";
+
+      document.getElementById('result').innerText = message;
+    }
+  </script>
+</body>
+</html>
